@@ -2,9 +2,12 @@ package com.visualpurity.parties.datastore.model;
 
 import com.visualpurity.parties.datastore.model.media.Medium;
 import com.visualpurity.parties.datastore.model.profile.Profile;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.Singular;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.io.Serializable;
@@ -13,6 +16,8 @@ import java.util.List;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Post implements Serializable {
     private static final long serialVersionUID = 3034886868475544787L;
     private String id;
@@ -24,7 +29,9 @@ public class Post implements Serializable {
     @DBRef
     @Singular("medium")
     private List<Medium> media;
-    @Singular
-    private List<Post> comments;
     private Integer likes;
+    @Indexed
+    private String partyId;
+    @Indexed
+    private String postId;
 }

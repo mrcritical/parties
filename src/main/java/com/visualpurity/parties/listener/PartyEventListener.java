@@ -1,8 +1,10 @@
 package com.visualpurity.parties.listener;
 
-import com.visualpurity.parties.api.model.guest.LikedResource;
+import com.visualpurity.parties.api.model.CommentedResource;
+import com.visualpurity.parties.api.model.LikedResource;
+import com.visualpurity.parties.api.model.PostedResource;
 import com.visualpurity.parties.datastore.AttendeeRepository;
-import com.visualpurity.parties.datastore.PartyRepository;
+import com.visualpurity.parties.datastore.PostRepository;
 import com.visualpurity.parties.datastore.model.Attendee;
 import com.visualpurity.parties.datastore.model.Post;
 import com.visualpurity.parties.listener.event.JoinedPartyEvent;
@@ -13,52 +15,45 @@ import com.visualpurity.parties.listener.event.PostCommentEvent;
 import com.visualpurity.parties.listener.event.UnlikeEvent;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import ma.glasnost.orika.MapperFacade;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
+
+import static java.lang.String.format;
 
 @Component
 @RequiredArgsConstructor
 public class PartyEventListener {
 
     @NonNull
-    private final PartyRepository partyRepository;
+    private final AttendeeRepository attendeeRepository;
 
     @NonNull
-    private final AttendeeRepository attendeeRepository;
+    private final PostRepository postRepository;
 
     @NonNull
     private final SimpMessageSendingOperations messagingTemplate;
 
+    @NonNull
+    private final MapperFacade mapperFacade;
+
     @Async
     @EventListener(PartyPostEvent.class)
     public void handleEvent(PartyPostEvent event) {
-        Post post = Post
-                .builder()
-                .id(event.getId())
-                .text(event.getText())
-                .by(event.getBy().getGuest())
-                .at(event.getAt())
-                .media(new ArrayList<>())
-                // TODO Add media
-                .build();
-        partyRepository
-                .findById(event.getPartyId())
-                .flatMap(party -> {
-                    List<Post> posts = Optional
-                            .ofNullable(party.getPosts())
-                            .orElseGet(() -> {
-                                List<Post> postList = new ArrayList<>();
-                                party.setPosts(postList);
-                                return postList;
-                            });
-                    posts.add(post);
-                    return partyRepository.save(party);
+        Post post = mapperFacade.map(event, Post.class);
+        postRepository
+                .save(post)
+                .doOnNext(post1 -> {
+                    // Send the update to the party
+                    messagingTemplate.convertAndSend(
+                            format("/party/%s",
+                            event.getPartyId()),
+                            mapperFacade.map(post1, PostedResource.class)
+                    );
                 })
                 .subscribe();
     }
@@ -66,31 +61,16 @@ public class PartyEventListener {
     @Async
     @EventListener(PostCommentEvent.class)
     public void handleEvent(PostCommentEvent event) {
-        Post comment = Post
-                .builder()
-                .id(event.getId())
-                .text(event.getText())
-                .by(event.getBy().getGuest())
-                .at(event.getAt())
-                .build();
-        partyRepository
-                .findById(event.getPartyId())
-                .flatMap(party -> {
-                    party.getPosts()
-                            .stream()
-                            .filter(post -> post.getId().equals(event.getPostId()))
-                            .findFirst()
-                            .ifPresent(post -> {
-                                List<Post> comments = Optional
-                                        .ofNullable(post.getComments())
-                                        .orElseGet(() -> {
-                                            List<Post> commentList = new ArrayList<>();
-                                            post.setComments(commentList);
-                                            return commentList;
-                                        });
-                                comments.add(comment);
-                            });
-                    return partyRepository.save(party);
+        Post comment = mapperFacade.map(event, Post.class);
+        postRepository
+                .save(comment)
+                .doOnNext(comment1 -> {
+                    // Send the update to the party
+                    messagingTemplate.convertAndSend(
+                            format("/party/%s",
+                                    event.getPartyId()),
+                            mapperFacade.map(comment1, CommentedResource.class)
+                    );
                 })
                 .subscribe();
     }
@@ -98,37 +78,24 @@ public class PartyEventListener {
     @Async
     @EventListener(LikeEvent.class)
     public void handleEvent(LikeEvent event) {
-        partyRepository
-                .findById(event.getPartyId())
-                .flatMap(party -> {
-                    party.getPosts()
-                            .stream()
-                            .filter(post -> post.getId().equals(event.getPostId()) || post.getId().equals(event.getId()))
-                            .findFirst()
-                            .ifPresent(post -> {
-                                Post postToLike = Optional
-                                        .ofNullable(event.getPostId())
-                                        .flatMap(id1 -> post.getComments()
-                                                .stream()
-                                                .filter(comment -> comment.getId().equals(post.getId()))
-                                                .findFirst()
-                                        )
-                                        .orElse(post);
-                                final Integer likes = Optional
-                                        .ofNullable(postToLike.getLikes())
-                                        .orElse(0) + 1;
-                                postToLike.setLikes(likes);
-
-                                // Send the update to the party
-                                messagingTemplate.convertAndSend(String.format("/party/%s", event.getPartyId()), LikedResource
-                                        .builder()
-                                        .id(event.getId())
-                                        .postId(event.getPostId())
-                                        .likes(postToLike.getLikes())
-                                        .build()
-                                );
-                            });
-                    return partyRepository.save(party);
+        postRepository
+                .findById(event.getId())
+                .flatMap(post -> {
+                    final Integer likes = Optional
+                            .ofNullable(post.getLikes())
+                            .orElse(0) + 1;
+                    post.setLikes(likes);
+                    return postRepository.save(post);
+                })
+                .doOnNext(post -> {
+                    // Send the update to the party
+                    messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), LikedResource
+                            .builder()
+                            .id(event.getId())
+                            .postId(event.getPostId())
+                            .likes(post.getLikes())
+                            .build()
+                    );
                 })
                 .subscribe();
     }
@@ -136,37 +103,24 @@ public class PartyEventListener {
     @Async
     @EventListener(UnlikeEvent.class)
     public void handleEvent(UnlikeEvent event) {
-        partyRepository
-                .findById(event.getPartyId())
-                .flatMap(party -> {
-                    party.getPosts()
-                            .stream()
-                            .filter(post -> post.getId().equals(event.getPostId()) || post.getId().equals(event.getId()))
-                            .findFirst()
-                            .ifPresent(post -> {
-                                Post postToLike = Optional
-                                        .ofNullable(event.getPostId())
-                                        .flatMap(id1 -> post.getComments()
-                                                .stream()
-                                                .filter(comment -> comment.getId().equals(post.getId()))
-                                                .findFirst()
-                                        )
-                                        .orElse(post);
-                                final Integer likes = Optional
-                                        .ofNullable(postToLike.getLikes())
-                                        .orElse(0) - 1;
-                                postToLike.setLikes(likes >= 0 ? likes : 0);
-
-                                // Send the update to the party
-                                messagingTemplate.convertAndSend(String.format("/party/%s", event.getPartyId()), LikedResource
-                                        .builder()
-                                        .id(event.getId())
-                                        .postId(event.getPostId())
-                                        .likes(postToLike.getLikes())
-                                        .build()
-                                );
-                            });
-                    return partyRepository.save(party);
+        postRepository
+                .findById(event.getId())
+                .flatMap(post -> {
+                    final Integer likes = Optional
+                            .ofNullable(post.getLikes())
+                            .orElse(0) - 1;
+                    post.setLikes(likes >= 0 ? likes : 0);
+                    return postRepository.save(post);
+                })
+                .doOnNext(post -> {
+                    // Send the update to the party
+                    messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), LikedResource
+                            .builder()
+                            .id(event.getId())
+                            .postId(event.getPostId())
+                            .likes(post.getLikes())
+                            .build()
+                    );
                 })
                 .subscribe();
     }

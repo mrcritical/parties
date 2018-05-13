@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8080}
+spring:
+  application:
+    name: parties
+security:
+  token:
+    secret: cat
+    max-age-seconds: 900
+  password:
+    strength: 10
+
+---
+spring:
+  profiles: local
+mongodb:
+  uri: mongodb://localhost:27017
+  database-name: parties
+
+---
+spring:
+  profiles: prod
+mongodb:
+  uri: $MONGOLAB_URI
+

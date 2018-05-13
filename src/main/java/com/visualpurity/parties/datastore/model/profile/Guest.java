@@ -1,9 +1,7 @@
 package com.visualpurity.parties.datastore.model.profile;
 
-import com.visualpurity.parties.datastore.model.Account;
 import com.visualpurity.parties.datastore.model.media.Picture;
 import lombok.Data;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.util.List;
 
@@ -15,6 +13,5 @@ public class Guest implements Profile {
     private Picture avatar;
     private List<EmailAddress> emailAddresses;
     private List<PhoneNumber> phoneNumbers;
-    @DBRef
-    private Account account;
+    private String accountId;
 }

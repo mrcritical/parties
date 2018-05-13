@@ -1,16 +1,11 @@
 package com.visualpurity.parties.api;
 
-import com.visualpurity.parties.api.model.guest.AttendeeResource;
-import com.visualpurity.parties.api.model.guest.CommentResource;
-import com.visualpurity.parties.api.model.guest.CommentedResource;
-import com.visualpurity.parties.api.model.guest.LikeResource;
-import com.visualpurity.parties.api.model.guest.NameResource;
-import com.visualpurity.parties.api.model.guest.PostResource;
-import com.visualpurity.parties.api.model.guest.PostedResource;
-import com.visualpurity.parties.api.model.guest.ProfileResource;
-import com.visualpurity.parties.api.model.guest.media.PictureResource;
+import com.visualpurity.parties.api.model.AttendeeResource;
+import com.visualpurity.parties.api.model.CommentResource;
+import com.visualpurity.parties.api.model.LikeResource;
+import com.visualpurity.parties.api.model.PostResource;
+import com.visualpurity.parties.api.model.ProfileResource;
 import com.visualpurity.parties.datastore.AttendeeRepository;
-import com.visualpurity.parties.datastore.PartyRepository;
 import com.visualpurity.parties.datastore.model.Attendee;
 import com.visualpurity.parties.listener.event.JoinedPartyEvent;
 import com.visualpurity.parties.listener.event.LeftPartyEvent;
@@ -20,7 +15,8 @@ import com.visualpurity.parties.listener.event.PostCommentEvent;
 import com.visualpurity.parties.listener.event.UnlikeEvent;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.RandomStringUtils;
+import ma.glasnost.orika.MapperFacade;
+import org.bson.types.ObjectId;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -31,6 +27,8 @@ import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -39,13 +37,13 @@ public class PartyController {
     private static final String ATTENDEE_KEY = "attendee";
 
     @NonNull
-    private final PartyRepository partyRepository;
-
-    @NonNull
     private final AttendeeRepository attendeeRepository;
 
     @NonNull
     private final ApplicationEventPublisher publisher;
+
+    @NonNull
+    private final MapperFacade mapperFacade;
 
     @MessageMapping("/party.join")
     @SendTo("/party/{id}")
@@ -86,136 +84,83 @@ public class PartyController {
     }
 
     @MessageMapping("/party.post")
-    @SendTo("/party/{id}")
-    public Mono<PostedResource> post(@DestinationVariable String id,
-                                     @Payload PostResource post,
-                                     SimpMessageHeaderAccessor headerAccessor) {
+    public void post(@DestinationVariable String id,
+                     @Payload PostResource post,
+                     SimpMessageHeaderAccessor headerAccessor) {
 
         Attendee attendee = (Attendee) headerAccessor.getSessionAttributes().get(ATTENDEE_KEY);
-        return partyRepository
-                .findById(id)
-                .map(party -> {
-                    PartyPostEvent postData = PartyPostEvent
-                            .builder()
-                            .id(RandomStringUtils.randomAlphanumeric(10))
-                            .at(LocalDateTime.now())
-                            .by(attendee)
-                            .text(post.getText())
-                            .partyId(id)
-                            // TODO Handle media
-                            .build();
-                    publisher.publishEvent(postData);
-
-                    return PostedResource
-                            .builder()
-                            .id(postData.getId())
-                            .at(postData.getAt())
-                            .by(to(attendee))
-                            .likes(0)
-                            .text(postData.getText())
-                            // TODO Handle media
-                            .build();
-                });
+        PartyPostEvent postData = PartyPostEvent
+                .builder()
+                .id(ObjectId.get().toString())
+                .at(LocalDateTime.now())
+                .by(attendee)
+                .text(post.getText())
+                .partyId(id)
+                .build();
+        Optional
+                .ofNullable(post.getMedia())
+                .map(media -> media
+                        .stream()
+                        .map(mediumResource -> mapperFacade.map(mediumResource, PartyPostEvent.PostedMedium.class))
+                        .collect(Collectors.toList())
+                )
+                .ifPresent(postData::setMedia);
+        publisher.publishEvent(postData);
     }
 
     @MessageMapping("/party.comment")
-    @SendTo("/party/{id}")
-    public Mono<CommentedResource> comment(@DestinationVariable String id,
-                                           @Payload CommentResource comment,
-                                           SimpMessageHeaderAccessor headerAccessor) {
+    public void comment(@DestinationVariable String id,
+                        @Payload CommentResource comment,
+                        SimpMessageHeaderAccessor headerAccessor) {
 
         Attendee attendee = (Attendee) headerAccessor.getSessionAttributes().get(ATTENDEE_KEY);
-        return partyRepository
-                .findById(id)
-                .map(party -> {
-                    PostCommentEvent commentEvent = PostCommentEvent
-                            .builder()
-                            .id(RandomStringUtils.randomAlphanumeric(10))
-                            .at(LocalDateTime.now())
-                            .by(attendee)
-                            .text(comment.getText())
-                            .postId(comment.getPostId())
-                            .partyId(id)
-                            .build();
-                    publisher.publishEvent(commentEvent);
-
-                    return CommentedResource
-                            .builder()
-                            .id(commentEvent.getId())
-                            .at(commentEvent.getAt())
-                            .by(to(attendee))
-                            .likes(0)
-                            .postId(comment.getPostId())
-                            .text(commentEvent.getText())
-                            .build();
-                });
+        PostCommentEvent commentEvent = PostCommentEvent
+                .builder()
+                .id(ObjectId.get().toString())
+                .at(LocalDateTime.now())
+                .by(attendee)
+                .text(comment.getText())
+                .postId(comment.getPostId())
+                .partyId(id)
+                .build();
+        publisher.publishEvent(commentEvent);
     }
 
     // TODO Modify post/comment
     // TODO Remove post/comment
 
     @MessageMapping("/party.like")
-    @SendTo("/party/{id}")
     public void like(@DestinationVariable String id,
                      @Payload LikeResource like) {
-        partyRepository
-                .findById(id)
-                .doOnNext(party -> {
-                    LikeEvent likeEvent = LikeEvent
-                            .builder()
-                            .id(like.getId())
-                            .postId(like.getPostId())
-                            .partyId(id)
-                            .build();
-                    publisher.publishEvent(likeEvent);
-                })
-                .subscribe();
+        LikeEvent likeEvent = LikeEvent
+                .builder()
+                .id(like.getId())
+                .postId(like.getPostId())
+                .partyId(id)
+                .build();
+        publisher.publishEvent(likeEvent);
     }
 
     @MessageMapping("/party.unlike")
-    @SendTo("/party/{id}")
     public void unlike(@DestinationVariable String id,
                        @Payload LikeResource unlike) {
-        partyRepository
-                .findById(id)
-                .doOnNext(party -> {
-                    UnlikeEvent likeEvent = UnlikeEvent
-                            .builder()
-                            .id(unlike.getId())
-                            .postId(unlike.getPostId())
-                            .partyId(id)
-                            .build();
-                    publisher.publishEvent(likeEvent);
-                })
-                .subscribe();
+        UnlikeEvent likeEvent = UnlikeEvent
+                .builder()
+                .id(unlike.getId())
+                .postId(unlike.getPostId())
+                .partyId(id)
+                .build();
+        publisher.publishEvent(likeEvent);
     }
 
     private ProfileResource to(Attendee attendee) {
-        return ProfileResource
-                .builder()
-                .name(
-                        NameResource
-                                .builder()
-                                .first(attendee.getGuest().getName().getFirst())
-                                .last(attendee.getGuest().getName().getLast())
-                                .build()
-                )
-                .avatar(
-                        PictureResource
-                                .builder()
-                                .url(attendee.getGuest().getAvatar().getUrl())
-                                .build()
-                )
-                .build();
+        return mapperFacade.map(attendee, ProfileResource.class);
     }
 
     private AttendeeResource to(Attendee attendee, AttendeeResource.AttendeeStatus status) {
-        return AttendeeResource
-                .builder()
-                .id(attendee.getId())
-                .guest(to(attendee))
-                .status(status)
-                .build();
+        AttendeeResource attendeeResource = mapperFacade.map(attendee, AttendeeResource.class);
+        attendeeResource.setStatus(status);
+        return attendeeResource;
     }
 
 }
