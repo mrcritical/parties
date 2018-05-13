@@ -1,17 +1,24 @@
 package com.visualpurity.parties.listener;
 
+import com.visualpurity.parties.api.model.AttendeeResource;
 import com.visualpurity.parties.api.model.CommentedResource;
 import com.visualpurity.parties.api.model.LikedResource;
+import com.visualpurity.parties.api.model.PartyResource.PartyStatus;
+import com.visualpurity.parties.api.model.PartyStateResource;
 import com.visualpurity.parties.api.model.PostedResource;
+import com.visualpurity.parties.api.model.ProfileResource;
 import com.visualpurity.parties.datastore.AttendeeRepository;
 import com.visualpurity.parties.datastore.PostRepository;
 import com.visualpurity.parties.datastore.model.Attendee;
 import com.visualpurity.parties.datastore.model.Post;
+import com.visualpurity.parties.listener.event.AttendeeGuestUpdatedEvent;
+import com.visualpurity.parties.listener.event.EndPartyEvent;
 import com.visualpurity.parties.listener.event.JoinedPartyEvent;
 import com.visualpurity.parties.listener.event.LeftPartyEvent;
 import com.visualpurity.parties.listener.event.LikeEvent;
 import com.visualpurity.parties.listener.event.PartyPostEvent;
 import com.visualpurity.parties.listener.event.PostCommentEvent;
+import com.visualpurity.parties.listener.event.StartPartyEvent;
 import com.visualpurity.parties.listener.event.UnlikeEvent;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -123,6 +130,40 @@ public class PartyEventListener {
                     );
                 })
                 .subscribe();
+    }
+
+    @Async
+    @EventListener(StartPartyEvent.class)
+    public void handleEvent(StartPartyEvent event) {
+        // Send the update to the party
+        messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), PartyStateResource
+                .builder()
+                .status(PartyStatus.IN_PROGRESS)
+                .build()
+        );
+    }
+
+    @Async
+    @EventListener(EndPartyEvent.class)
+    public void handleEvent(EndPartyEvent event) {
+        // Send the update to the party
+        messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), PartyStateResource
+                .builder()
+                .status(PartyStatus.ENDED)
+                .build()
+        );
+    }
+
+    @Async
+    @EventListener(AttendeeGuestUpdatedEvent.class)
+    public void handleEvent(AttendeeGuestUpdatedEvent event) {
+        // Send the update to the party
+        messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), AttendeeResource
+                .builder()
+                .id(event.getId())
+                .guest(event.getGuest())
+                .build()
+        );
     }
 
     @Async

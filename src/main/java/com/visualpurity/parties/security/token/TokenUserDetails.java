@@ -15,15 +15,19 @@ public class TokenUserDetails extends User {
 
     private final String profileName;
 
+    private final com.visualpurity.parties.datastore.model.profile.User user;
+
     public TokenUserDetails(String username,
                             String profileName,
                             String password,
                             String token,
+                            com.visualpurity.parties.datastore.model.profile.User user,
                             boolean enabled,
                             Collection<? extends GrantedAuthority> authorities) {
         super(username, password, enabled, true, true, true, authorities);
         this.profileName = profileName;
         this.token = token;
+        this.user = user;
     }
 
 }

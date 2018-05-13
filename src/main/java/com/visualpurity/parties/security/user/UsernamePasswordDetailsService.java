@@ -44,6 +44,7 @@ public class UsernamePasswordDetailsService implements UserDetailsService {
                 user.getUserName(),
                 user.getPassword(),
                 tokenService.encode(user),
+                user,
                 user.isEnabled(),
                 getAuthorities(user.getRoles())
         );

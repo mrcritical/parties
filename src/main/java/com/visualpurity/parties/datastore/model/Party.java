@@ -1,7 +1,6 @@
 package com.visualpurity.parties.datastore.model;
 
-import com.visualpurity.parties.datastore.model.media.Medium;
-import com.visualpurity.parties.datastore.model.schedule.ScheduledEvent;
+import com.visualpurity.parties.datastore.model.media.Picture;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -17,10 +16,8 @@ public class Party implements Serializable {
     private Creator createdBy;
     private LocalDateTime start;
     private LocalDateTime end;
-    private Medium banner;
+    private Picture banner;
     private List<String> hosts;
-    private List<Attendee> attendees;
-    private List<ScheduledEvent> scheduledEvents;
     private List<String> gallery;
     private PartyStatus status;
     private String accountId;
