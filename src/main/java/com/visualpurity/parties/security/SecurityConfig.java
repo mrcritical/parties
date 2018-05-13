@@ -1,9 +1,8 @@
 package com.visualpurity.parties.security;
 
-import com.visualpurity.parties.security.token.ApiAuthenticationProvider;
-import com.visualpurity.parties.security.token.TokenLoginSuccessHandler;
 import com.visualpurity.parties.security.token.TokenAuthenticationFilter;
 import com.visualpurity.parties.security.token.TokenAuthenticationUserDetailsService;
+import com.visualpurity.parties.security.token.TokenLoginSuccessHandler;
 import com.visualpurity.parties.security.token.TokenLogoutSuccessHandler;
 import com.visualpurity.parties.security.user.UserSecurityProperties;
 import com.visualpurity.parties.security.user.UsernamePasswordDetailsService;
@@ -172,8 +171,7 @@ public class SecurityConfig {
 
         @Override
         protected void configure(AuthenticationManagerBuilder auth) {
-            auth.authenticationProvider(preAuthProvider())
-                    .authenticationProvider(apiAuthenticationProvider());
+            auth.authenticationProvider(preAuthProvider());
         }
 
         @Bean
@@ -186,11 +184,6 @@ public class SecurityConfig {
             PreAuthenticatedAuthenticationProvider provider = new PreAuthenticatedAuthenticationProvider();
             provider.setPreAuthenticatedUserDetailsService(tokenAuthenticationUserDetailsService);
             return provider;
-        }
-
-        @Bean
-        public ApiAuthenticationProvider apiAuthenticationProvider() {
-            return new ApiAuthenticationProvider();
         }
 
         @Bean

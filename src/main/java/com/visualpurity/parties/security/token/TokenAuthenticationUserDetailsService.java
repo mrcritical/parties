@@ -2,6 +2,7 @@ package com.visualpurity.parties.security.token;
 
 import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.visualpurity.parties.datastore.UserRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +21,9 @@ public class TokenAuthenticationUserDetailsService implements AuthenticationUser
     @NonNull
     private final TokenService tokenService;
 
+    @NonNull
+    private final UserRepository userRepository;
+
     @Override
     public UserDetails loadUserDetails(PreAuthenticatedAuthenticationToken authentication) throws UsernameNotFoundException {
         if (authentication.getPrincipal() != null && authentication.getPrincipal() instanceof String && authentication.getCredentials() instanceof String) {
@@ -29,12 +33,22 @@ public class TokenAuthenticationUserDetailsService implements AuthenticationUser
             } catch (InvalidClaimException ex) {
                 throw new UsernameNotFoundException("Token has been expired", ex);
             }
-            return new TokenUserDetails(token.getSubject(), token.getClaim("usr").asString(), (String) authentication.getCredentials(), token.getToken(), true, token
-                    .getClaim("role")
-                    .asList(String.class)
-                    .stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList()));
+            return new TokenUserDetails(
+                    token.getSubject(),
+                    token.getClaim("usr").asString(),
+                    (String) authentication.getCredentials(),
+                    token.getToken(),
+                    userRepository
+                            .findByEmailAddress(token.getSubject())
+                            .block(),
+                    true,
+                    token
+                            .getClaim("role")
+                            .asList(String.class)
+                            .stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList())
+            );
         } else {
             throw new UsernameNotFoundException("Could not retrieve user details for '" + authentication.getPrincipal() + "'");
         }
