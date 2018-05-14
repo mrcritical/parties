@@ -45,7 +45,7 @@ public class PartyController {
     @NonNull
     private final MapperFacade mapperFacade;
 
-    @MessageMapping("/party.join")
+    @MessageMapping("/party/{id}/join")
     @SendTo("/party/{id}")
     public Mono<AttendeeResource> join(@DestinationVariable String id,
                                        @Payload String attendeeId,
@@ -65,7 +65,7 @@ public class PartyController {
                 .map(attendee -> to(attendee, AttendeeResource.AttendeeStatus.JOINED));
     }
 
-    @MessageMapping("/party.leave")
+    @MessageMapping("/party/{id}/leave")
     @SendTo("/party/{id}")
     public AttendeeResource leave(@DestinationVariable String id,
                                   SimpMessageHeaderAccessor headerAccessor) {
@@ -83,7 +83,7 @@ public class PartyController {
         return to(attendee, AttendeeResource.AttendeeStatus.LEFT_EARLY);
     }
 
-    @MessageMapping("/party.post")
+    @MessageMapping("/party/{id}/post")
     public void post(@DestinationVariable String id,
                      @Payload PostResource post,
                      SimpMessageHeaderAccessor headerAccessor) {
@@ -108,11 +108,10 @@ public class PartyController {
         publisher.publishEvent(postData);
     }
 
-    @MessageMapping("/party.comment")
+    @MessageMapping("/party/{id}/comment")
     public void comment(@DestinationVariable String id,
                         @Payload CommentResource comment,
                         SimpMessageHeaderAccessor headerAccessor) {
-
         Attendee attendee = (Attendee) headerAccessor.getSessionAttributes().get(ATTENDEE_KEY);
         PostCommentEvent commentEvent = PostCommentEvent
                 .builder()
@@ -129,7 +128,7 @@ public class PartyController {
     // TODO Modify post/comment
     // TODO Remove post/comment
 
-    @MessageMapping("/party.like")
+    @MessageMapping("/party/{id}/like")
     public void like(@DestinationVariable String id,
                      @Payload LikeResource like) {
         LikeEvent likeEvent = LikeEvent
@@ -141,7 +140,7 @@ public class PartyController {
         publisher.publishEvent(likeEvent);
     }
 
-    @MessageMapping("/party.unlike")
+    @MessageMapping("/party/{id}/unlike")
     public void unlike(@DestinationVariable String id,
                        @Payload LikeResource unlike) {
         UnlikeEvent likeEvent = UnlikeEvent
