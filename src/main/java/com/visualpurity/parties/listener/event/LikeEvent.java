@@ -16,4 +16,5 @@ public class LikeEvent implements Serializable {
     private String id;
     private String partyId;
     private String postId;
+    private String guestId;
 }

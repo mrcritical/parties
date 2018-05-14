@@ -29,7 +29,8 @@ public class Post implements Serializable {
     @DBRef
     @Singular("medium")
     private List<Medium> media;
-    private Integer likes;
+    @Singular
+    private List<String> likes;
     @Indexed
     private String partyId;
     @Indexed

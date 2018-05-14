@@ -28,7 +28,10 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -52,13 +55,14 @@ public class PartyEventListener {
     @EventListener(PartyPostEvent.class)
     public void handleEvent(PartyPostEvent event) {
         Post post = mapperFacade.map(event, Post.class);
+        post.setLikes(new ArrayList<>());
         postRepository
                 .save(post)
                 .doOnNext(post1 -> {
                     // Send the update to the party
                     messagingTemplate.convertAndSend(
                             format("/party/%s",
-                            event.getPartyId()),
+                                    event.getPartyId()),
                             mapperFacade.map(post1, PostedResource.class)
                     );
                 })
@@ -69,6 +73,7 @@ public class PartyEventListener {
     @EventListener(PostCommentEvent.class)
     public void handleEvent(PostCommentEvent event) {
         Post comment = mapperFacade.map(event, Post.class);
+        comment.setLikes(new ArrayList<>());
         postRepository
                 .save(comment)
                 .doOnNext(comment1 -> {
@@ -88,10 +93,15 @@ public class PartyEventListener {
         postRepository
                 .findById(event.getId())
                 .flatMap(post -> {
-                    final Integer likes = Optional
+                    final List<String> likes = Optional
                             .ofNullable(post.getLikes())
-                            .orElse(0) + 1;
-                    post.setLikes(likes);
+                            .orElseGet(ArrayList::new);
+                    likes.add(event.getGuestId());
+                    post.setLikes(likes
+                            .stream()
+                            .distinct()
+                            .collect(Collectors.toList())
+                    );
                     return postRepository.save(post);
                 })
                 .doOnNext(post -> {
@@ -100,7 +110,7 @@ public class PartyEventListener {
                             .builder()
                             .id(event.getId())
                             .postId(event.getPostId())
-                            .likes(post.getLikes())
+                            .likes(post.getLikes().size())
                             .build()
                     );
                 })
@@ -113,10 +123,11 @@ public class PartyEventListener {
         postRepository
                 .findById(event.getId())
                 .flatMap(post -> {
-                    final Integer likes = Optional
+                    List<String> likes = Optional
                             .ofNullable(post.getLikes())
-                            .orElse(0) - 1;
-                    post.setLikes(likes >= 0 ? likes : 0);
+                            .orElseGet(ArrayList::new);
+                    likes.remove(event.getGuestId());
+                    post.setLikes(likes);
                     return postRepository.save(post);
                 })
                 .doOnNext(post -> {
@@ -125,7 +136,7 @@ public class PartyEventListener {
                             .builder()
                             .id(event.getId())
                             .postId(event.getPostId())
-                            .likes(post.getLikes())
+                            .likes(post.getLikes().size())
                             .build()
                     );
                 })
