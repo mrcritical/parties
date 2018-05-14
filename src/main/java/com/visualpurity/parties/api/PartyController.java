@@ -60,6 +60,7 @@ public class PartyController {
     @NonNull
     private final MapperFacade mapperFacade;
 
+    @NonNull
     private final Cached cached;
 
     @MessageMapping("/party/{id}/join")
