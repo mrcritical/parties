@@ -6,7 +6,7 @@ import com.visualpurity.parties.api.model.LikedResource;
 import com.visualpurity.parties.api.model.PartyResource.PartyStatus;
 import com.visualpurity.parties.api.model.PartyStateResource;
 import com.visualpurity.parties.api.model.PostedResource;
-import com.visualpurity.parties.api.model.ProfileResource;
+import com.visualpurity.parties.cache.Cached;
 import com.visualpurity.parties.datastore.AttendeeRepository;
 import com.visualpurity.parties.datastore.PostRepository;
 import com.visualpurity.parties.datastore.model.Attendee;
@@ -51,6 +51,9 @@ public class PartyEventListener {
     @NonNull
     private final MapperFacade mapperFacade;
 
+    @NonNull
+    private final Cached cached;
+
     @Async
     @EventListener(PartyPostEvent.class)
     public void handleEvent(PartyPostEvent event) {
@@ -90,8 +93,13 @@ public class PartyEventListener {
     @Async
     @EventListener(LikeEvent.class)
     public void handleEvent(LikeEvent event) {
-        postRepository
-                .findById(event.getId())
+        cached
+                .lookup(
+                        "posts",
+                        event.getId(),
+                        Post.class,
+                        () -> postRepository.findById(event.getId())
+                )
                 .flatMap(post -> {
                     final List<String> likes = Optional
                             .ofNullable(post.getLikes())
@@ -120,8 +128,13 @@ public class PartyEventListener {
     @Async
     @EventListener(UnlikeEvent.class)
     public void handleEvent(UnlikeEvent event) {
-        postRepository
-                .findById(event.getId())
+        cached
+                .lookup(
+                        "posts",
+                        event.getId(),
+                        Post.class,
+                        () -> postRepository.findById(event.getId())
+                )
                 .flatMap(post -> {
                     List<String> likes = Optional
                             .ofNullable(post.getLikes())

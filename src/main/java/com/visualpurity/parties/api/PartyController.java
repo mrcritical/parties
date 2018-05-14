@@ -1,10 +1,17 @@
 package com.visualpurity.parties.api;
 
-import com.visualpurity.parties.api.model.*;
+import com.visualpurity.parties.api.model.AttendeeResource;
+import com.visualpurity.parties.api.model.CommentResource;
+import com.visualpurity.parties.api.model.LikeResource;
+import com.visualpurity.parties.api.model.LikesResource;
+import com.visualpurity.parties.api.model.PostResource;
+import com.visualpurity.parties.api.model.ProfileResource;
+import com.visualpurity.parties.cache.Cached;
 import com.visualpurity.parties.datastore.AttendeeRepository;
 import com.visualpurity.parties.datastore.GuestRepository;
 import com.visualpurity.parties.datastore.PostRepository;
 import com.visualpurity.parties.datastore.model.Attendee;
+import com.visualpurity.parties.datastore.model.Post;
 import com.visualpurity.parties.datastore.model.profile.Guest;
 import com.visualpurity.parties.listener.event.JoinedPartyEvent;
 import com.visualpurity.parties.listener.event.LeftPartyEvent;
@@ -53,13 +60,20 @@ public class PartyController {
     @NonNull
     private final MapperFacade mapperFacade;
 
+    private final Cached cached;
+
     @MessageMapping("/party/{id}/join")
     @SendTo("/party/{id}")
     public Mono<AttendeeResource> join(@DestinationVariable String id,
                                        @Payload String attendeeId,
                                        SimpMessageHeaderAccessor headerAccessor) {
-        return attendeeRepository
-                .findById(attendeeId)
+        return cached
+                .lookup(
+                        "attendees",
+                        attendeeId,
+                        Attendee.class,
+                        () -> attendeeRepository.findById(attendeeId)
+                )
                 .doOnNext(attendee -> {
                     headerAccessor.getSessionAttributes().put(ATTENDEE_KEY, attendee);
                     JoinedPartyEvent event = JoinedPartyEvent
@@ -154,17 +168,31 @@ public class PartyController {
     @MessageMapping("/party/{id}/likes")
     @SendToUser
     public Mono<LikesResource> likes(@DestinationVariable String id,
-                                     @Payload String postId,
-                                     SimpMessageHeaderAccessor headerAccessor) {
-        return postRepository
-                .findById(postId)
+                                     @Payload String postId) {
+        return cached
+                .lookup(
+                        "posts",
+                        postId,
+                        Post.class,
+                        () -> postRepository
+                                .findById(postId)
+                )
                 .flatMap(post -> Optional
                         .ofNullable(post.getLikes())
                         .map(likes -> {
-                            List<Mono<Guest>> guests = likes.stream()
-                                    .map(guestRepository::findById)
+                            List<Mono<Guest>> guests = likes
+                                    .stream()
+                                    .map(guestId -> cached
+                                            .lookup(
+                                                    "guests",
+                                                    guestId,
+                                                    Guest.class,
+                                                    () -> guestRepository.findById(guestId)
+                                            )
+                                    )
                                     .collect(Collectors.toList());
-                            return Flux.merge(guests)
+                            return Flux
+                                    .merge(guests)
                                     .collect(Collectors.toList());
                         })
                         .orElseGet(Mono::empty))
@@ -190,10 +218,6 @@ public class PartyController {
                 .guestId(attendee.getGuest().getId())
                 .build();
         publisher.publishEvent(likeEvent);
-    }
-
-    private ProfileResource to(Attendee attendee) {
-        return mapperFacade.map(attendee, ProfileResource.class);
     }
 
     private AttendeeResource to(Attendee attendee, AttendeeResource.AttendeeStatus status) {
