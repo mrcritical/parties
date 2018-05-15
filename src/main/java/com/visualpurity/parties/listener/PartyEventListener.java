@@ -6,6 +6,7 @@ import com.visualpurity.parties.api.model.LikedResource;
 import com.visualpurity.parties.api.model.PartyResource.PartyStatus;
 import com.visualpurity.parties.api.model.PartyStateResource;
 import com.visualpurity.parties.api.model.PostedResource;
+import com.visualpurity.parties.api.model.UnlikedResource;
 import com.visualpurity.parties.cache.Cached;
 import com.visualpurity.parties.datastore.AttendeeRepository;
 import com.visualpurity.parties.datastore.PostRepository;
@@ -118,6 +119,7 @@ public class PartyEventListener {
                             .builder()
                             .id(event.getId())
                             .postId(event.getPostId())
+                            .guestId(event.getGuestId())
                             .likes(post.getLikes().size())
                             .build()
                     );
@@ -145,10 +147,11 @@ public class PartyEventListener {
                 })
                 .doOnNext(post -> {
                     // Send the update to the party
-                    messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), LikedResource
+                    messagingTemplate.convertAndSend(format("/party/%s", event.getPartyId()), UnlikedResource
                             .builder()
                             .id(event.getId())
                             .postId(event.getPostId())
+                            .guestId(event.getGuestId())
                             .likes(post.getLikes().size())
                             .build()
                     );
