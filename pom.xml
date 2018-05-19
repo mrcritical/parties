@@ -22,7 +22,7 @@
         <orika.version>1.6.0</orika.version>
 		<caffeine.version>2.6.2</caffeine.version>
 		<reactor.extras.version>3.1.6.RELEASE</reactor.extras.version>
-        <jwt.version>3.1.0</jwt.version>
+		<jwt.version>3.1.0</jwt.version>
 		<node.version>v10.1.0</node.version>
 		<frontend-plugin.version>1.6</frontend-plugin.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
