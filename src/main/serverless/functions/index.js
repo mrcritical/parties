@@ -1,8 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const app = require('express')();
+const serviceAccount = require('./service-account.json');
 
-admin.initializeApp();
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: 'https://parties-35d88.firebaseio.com'
+});
 
 // We'll enable CORS support to allow the function to be invoked
 // from our app client-side.
@@ -17,27 +21,22 @@ app.get('/attendee/authorize', (req, res) => {
     const token = req.query.token;
     admin
         .firestore()
-        .collection('attendees')
-        .where('token', '==', token)
+        .collection('tokens')
+        .doc(token)
         .get()
         .then((attendee) => {
-            if (attendee !== 'undefined' && attendee.uid && attendee.id !== '') {
-                console.log('Attendee found=' + JSON.stringify(attendee));
-                return res.json({
-                    token: token,
-                    attendee: attendee
-                });
-                /*return admin
+            const data = attendee.data();
+            if (attendee.exists) {
+                return admin
                     .auth()
-                    .createCustomToken(attendee.uid)
+                    .createCustomToken(data.userId)
                     .then((customToken) => {
-                        console.log('Firebase token created=' + customToken);
                         return res.json({
                             token: customToken
                         });
-                    });*/
+                    });
             } else {
-                return Promise.reject(new Error('Failed to find the uid for attendee using token=' + token + ''));
+                return Promise.reject(new Error('Failed to find the uid for attendee using token=' + token));
             }
         })
         .catch((error) => {
