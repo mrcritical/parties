@@ -13,7 +13,7 @@
       "defaultTemplate": "String"
     },
     "assets": ["Asset"],
-    "parties": ["Party"],
+    "parties": ["Party"]
   },
   "asset": {
     "id": "String",
