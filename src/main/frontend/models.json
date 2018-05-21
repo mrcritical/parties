@@ -91,7 +91,7 @@
     },
     "chats": [
       {
-        "userId": "String",
+        "with": ["String"],
         "messages": ["Message"]
       }
     ]
