@@ -54,7 +54,11 @@
     },
     "posts": ["Post"],
     "attendees": ["Attendee"],
-    "plans": ["Plan"]
+    "plans": ["Plan"],
+    "archived": {
+      "at": "DateTime",
+      "url": "String"
+    }
   },
   "attendee": {
     "id": "String",
@@ -80,7 +84,18 @@
           "thumbnail": "String"
         }
       ]
-    }
+    },
+    "chats": [
+      {
+        "userId": "String",
+        "messages": ["Message"]
+      }
+    ]
+  },
+  "message": {
+    "at": "DateTime",
+    "who": "String",
+    "text": "String"
   },
   "catalog": {
     "id": "String",
@@ -160,9 +175,6 @@
       "last": "String"
     },
     "handle": "String",
-    "roles": [
-      "String"
-    ],
     "emailAddress": "String",
     "phoneNumbers": [
       {
@@ -175,7 +187,8 @@
   "user": {
     "id": "String",
     "accountId": "String",
-    "profile": "Reference"
+    "profile": "Reference",
+    "roles": ["String"]
   },
   "plan": [
     {
