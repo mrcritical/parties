@@ -1,0 +1,150 @@
+{
+  "account": {
+    "id": "String",
+    "openedAt": "DateTime",
+    "closedAt": "DateTime",
+    "settings": {
+      "automaticPost": "Boolean",
+      "allowHostTo": {
+        "post": "Boolean",
+        "directChat": "Boolean"
+      }
+    },
+    "assets": ["Asset"],
+    "parties": ["Party"]
+  },
+  "asset": {
+    "id": "String",
+    "name": "String",
+    "url": "String",
+    "type": "String",
+    "subType": "String",
+    "width": "Number",
+    "height": "Number"
+  },
+  "party": {
+    "id": "String",
+    "status": "String",
+    "createdBy": {
+      "at": "DateTime",
+      "userId": "String"
+    },
+    "name": "String",
+    "description": "String",
+    "banner": "Asset",
+    "start": {
+      "at": "DateTime",
+      "actual": "DateTime"
+    },
+    "end": {
+      "at": "DateTime",
+      "actual": "DateTime"
+    },
+    "settings": {
+      "automaticPost": "Boolean",
+      "allowHostTo": {
+        "post": "Boolean",
+        "directChat": "Boolean"
+      }
+    },
+    "posts": ["Post"],
+    "attendees": ["Attendee"],
+    "plans": ["Plan"]
+  },
+  "attendee": {
+    "id": "String",
+    "status": "String",
+    "userId": "String",
+    "handle": "String"
+  },
+  "post": {
+    "id": "String",
+    "at": "DateTime",
+    "by": "String",
+    "likes": [
+      "String"
+    ],
+    "modifiedAt": "DateTime",
+    "parentId": "String",
+    "comment": {
+      "text": "",
+      "mentions": [
+        {
+          "id": "String",
+          "handle": "String",
+          "indices": ["Number", "Number"]
+        }
+      ],
+      "urls": [
+        {
+          "url": "String",
+          "indices": ["Number", "Number"]
+        }
+      ],
+      "tags": [
+        {
+          "name": "String",
+          "indices": ["Number", "Number"]
+        }
+      ]
+    },
+    "media": [
+      {
+        "name": "String",
+        "url": "String",
+        "type": "String",
+        "subType": "String",
+        "width": "Number",
+        "height": "Number"
+      }
+    ]
+  },
+  "profile": {
+    "id": "String",
+    "avatar": {
+      "url": "String"
+    },
+    "name": {
+      "first": "String",
+      "last": "String"
+    },
+    "handle": "String",
+    "roles": [
+      "String"
+    ],
+    "emailAddress": "String",
+    "phoneNumbers": [
+      {
+        "type": "String",
+        "number": "String"
+      }
+    ],
+    "enabled": "Boolean"
+  },
+  "user": {
+    "id": "String",
+    "accountId": "String",
+    "profile": "Reference"
+  },
+  "plan": [
+    {
+      "id": "String",
+      "at": "DateTime",
+      "by": "String",
+      "action": {
+        "type": "String",
+        "text": "String",
+        "media": [
+          {
+            "name": "String",
+            "url": "String",
+            "type": "String",
+            "subType": "String",
+            "width": "Number",
+            "height": "Number"
+          }
+        ]
+      }
+    }
+  ]
+}

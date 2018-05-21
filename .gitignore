@@ -29,5 +29,7 @@
 node_modules/
 
 service-account.json
+firebase-account.json
+**/build/**
 
 .DS_Store
