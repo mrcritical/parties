@@ -53,6 +53,8 @@
       }
     },
     "posts": ["Post"],
+    "runBy": "ProfileReference",
+    "hostedBy": "ProfileReference",
     "attendees": ["Attendee"],
     "plans": ["Plan"],
     "archived": {
