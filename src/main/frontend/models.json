@@ -3,6 +3,7 @@
     "id": "String",
     "openedAt": "DateTime",
     "closedAt": "DateTime",
+    "catalogs": ["Catalog"],
     "settings": {
       "automaticPost": "Boolean",
       "allowHostTo": {
@@ -40,6 +41,10 @@
       "at": "DateTime",
       "actual": "DateTime"
     },
+    "closeOut": {
+      "at": "DateTime",
+      "actual": "DateTime"
+    },
     "settings": {
       "automaticPost": "Boolean",
       "allowHostTo": {
@@ -55,7 +60,49 @@
     "id": "String",
     "status": "String",
     "userId": "String",
-    "handle": "String"
+    "handle": "String",
+    "favorites": [
+      {
+        "catalogId": "String",
+        "productId": "String"
+      }
+    ],
+    "cart": {
+      "totals": {
+        "amount": "Number",
+        "count": "Number"
+      },
+      "items": [
+        {
+          "quantity": "Number",
+          "name": "String",
+          "productId": "String",
+          "thumbnail": "String"
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "id": "String",
+    "name": "String",
+    "products": ["Product"]
+  },
+  "product": {
+    "id": "String",
+    "name": "String",
+    "images": {
+      "fullSize": {
+        "url": "String",
+        "width": "Number",
+        "height": "Number"
+      },
+      "thumbnail": {
+        "url": "String",
+        "width": "Number",
+        "height": "Number"
+      }
+    },
+    "facets": ["String"]
   },
   "post": {
     "id": "String",
@@ -88,6 +135,10 @@
         }
       ]
     },
+    "actions": [{
+      "name": "String",
+      "trigger": "String"
+    }],
     "media": [
       {
         "name": "String",
