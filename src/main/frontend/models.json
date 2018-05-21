@@ -9,10 +9,11 @@
       "allowHostTo": {
         "post": "Boolean",
         "directChat": "Boolean"
-      }
+      },
+      "defaultTemplate": "String"
     },
     "assets": ["Asset"],
-    "parties": ["Party"]
+    "parties": ["Party"],
   },
   "asset": {
     "id": "String",
@@ -50,7 +51,8 @@
       "allowHostTo": {
         "post": "Boolean",
         "directChat": "Boolean"
-      }
+      },
+      "template": "String"
     },
     "posts": ["Post"],
     "runBy": "ProfileReference",
